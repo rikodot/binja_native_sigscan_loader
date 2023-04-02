@@ -30,10 +30,43 @@ repo_owner = 'rikodot'
 repo_name = 'binja_native_sigscan'
 file_url = 'https://github.com/{}/{}/releases/latest/download'.format(repo_owner, repo_name)
 
-# Name of files in release section on github (leave blank if platform not supported)
-win_file = 'sigscan.dll'
-linux_file = ''
-darwin_file = ''
+# File names in release section on github along with Binary Ninja versions for which they were compiled (leave whole variable blank if platform not supported)
+# Both version variables are inclusive meaning any Binary Ninja version in between is supported, DO NOT include '-dev' suffix so instead of '3.4.4189-dev', use just '3.4.4189')
+# Example:
+# win_files = [
+#    ('3.1.3469', '3.3.3996', 'sigscan.dll'),
+#    ('3.4.4169', '3.4.4189', 'sigscan_dev.dll')
+#    ]
+win_files = [
+    ('3.1.3469', '3.1.3469', 'sigscan_3469.dll'),
+    ('3.2.3814', '3.2.3814', 'sigscan_3814.dll'),
+    ('3.3.3996', '3.3.3996', 'sigscan.dll'),
+    ('3.4.4169', '3.4.4189', 'sigscan_dev.dll')
+    ]
+linux_files = []
+darwin_files = []
+
+# Function that determines whether Binary Ninja version is supported (returns None if not, according file name if yes)
+def is_version_supported(files):
+    # Get current Binary Ninja version
+    version_numbers = binaryninja.core_version().split()[0].split('-')[0].split('.')
+    major, minor, build = map(int, version_numbers)
+
+    # Loop through files for current platform and see if our version is supported by any
+    for entry in files:
+        min_ver, max_ver, file = entry
+
+        min_parts = min_ver.split('.')
+        max_parts = max_ver.split('.')
+
+        major_match = (major >= int(min_parts[0]) and major <= int(max_parts[0]))
+        minor_match = (minor >= int(min_parts[1]) and minor <= int(max_parts[1]))
+        build_match = (build >= int(min_parts[2]) and build <= int(max_parts[2]))
+
+        if major_match and minor_match and build_match:
+            return file
+    
+    return None
 
 # Function that determines whether system is supported
 def is_system_supported(file_name):
@@ -57,13 +90,15 @@ def read_data_file():
         return f.read().splitlines()
     
 # Function that writes to current_native_plugin_data file
-def write_data_file(version, hash):
+def write_data_file(version, hash, file_name):
     with open(os.path.join(binaryninja.user_plugin_path(), 'native_plugins_data', plugin_name + '.data'), 'w') as f:
-        f.write(version + '\n' + hash)
+        f.write(version + '\n' + hash + '\n' + file_name)
 
 # Function that deletes file from current_native_plugin_data
 def delete_data_file():
-    os.remove(os.path.join(binaryninja.user_plugin_path(), 'native_plugins_data', plugin_name + '.data'))
+    path = os.path.join(binaryninja.user_plugin_path(), 'native_plugins_data', plugin_name + '.data')
+    if os.path.isfile(path):
+        os.remove(path)
 
 # Function that calculates hash of file
 def calculate_hash(file_path):
@@ -96,36 +131,52 @@ def download_file_to_temp(file_url, file_name):
 
 # Function that deletes file
 def delete_file(file_path):
-    os.remove(file_path)
+    if os.path.isfile(file_path):
+        os.remove(file_path)
 
 # Function that deletes file from temp directory
 def delete_file_from_temp(file_name):
-    os.remove(os.path.join(binaryninja.user_plugin_path(), 'temp', file_name))
+    path = os.path.join(binaryninja.user_plugin_path(), 'temp', file_name)
+    if os.path.isfile(path):
+        os.remove(path)
 
-# Function that determines whether plugin is installed
+# Function that determines whether plugin is installed (for current Binary Ninja version)
 def is_plugin_installed(file_name):
     return os.path.isfile(os.path.join(binaryninja.user_plugin_path(), file_name))
-
-# Function that determines whether plugin is outdated
-def is_plugin_outdated(version, hash):
-    if data_folder_exists():
-        if data_file_exists(plugin_name):
-            data = read_data_file(plugin_name)
-            if data[0] == version and data[1] == hash:
-                return False
-            else:
-                return True
-        else:
-            return True
-    else:
-        return True
 
 # Function that alerts user
 def alert_user(description):
     binaryninja.interaction.show_message_box('{} (Native plugin loader)'.format(plugin_name), description, binaryninja.enums.MessageBoxButtonSet.OKButtonSet, binaryninja.enums.MessageBoxIcon.InformationIcon)
 
 # Function that does the actual work
-def check_for_updates(repo_owner, repo_name, file_url, win_file, linux_file, darwin_file):
+def check_for_updates(repo_owner, repo_name, file_url, win_files, linux_files, darwin_files):
+    # Determine OS we are running on
+    platform = sys.platform.lower()
+
+    # Windows
+    if platform.startswith('win'):
+        files = win_files
+    # Linux
+    elif platform.startswith('linux'):
+        files = linux_files
+    # Mac
+    elif platform.startswith('darwin'):
+        files = darwin_files
+    else:
+        alert_user(plugin_name, 'Unsupported platform')
+        return
+    
+    # Check Binary Ninja version and possible get file name for current version
+    file = is_version_supported(files)
+    if not file:
+        version_numbers = binaryninja.core_version().split()[0].split('-')[0].split('.')
+        major, minor, build = map(int, version_numbers)
+        alert_user('Current version of Binary Ninja ({}) is not supported.'.format(str(major) + '.' + str(minor) + '.' + str(build)))
+        return
+
+    # Create url for file we need
+    file_url = '{}/{}'.format(file_url, file)
+
     # Retrieve the HTML of the release page
     release_url = 'https://github.com/{}/{}/releases/latest'.format(repo_owner, repo_name)
     response = requests.get(release_url)
@@ -135,24 +186,6 @@ def check_for_updates(repo_owner, repo_name, file_url, win_file, linux_file, dar
     soup = bs4.BeautifulSoup(html, 'html.parser')
     latest_version_tag = getattr(soup.find('span', {'class': 'css-truncate-target'}), 'text', None)
     latest_version = latest_version_tag.strip() if latest_version_tag else None
-
-    # Determine OS we are running on
-    platform = sys.platform.lower()
-
-    # Windows
-    if platform.startswith('win'):
-        file_url = '{}/{}'.format(file_url, win_file)
-        file = win_file
-    # Linux
-    elif platform.startswith('linux'):
-        file_url = '{}/{}'.format(file_url, linux_file)
-        file = linux_file
-    # Mac
-    elif platform.startswith('darwin'):
-        file_url = '{}/{}'.format(file_url, darwin_file)
-        file = darwin_file
-    else:
-        alert_user(plugin_name, 'Unsupported platform')
 
     # Make sure we have data folder
     if not data_folder_exists():
@@ -166,21 +199,35 @@ def check_for_updates(repo_owner, repo_name, file_url, win_file, linux_file, dar
         for file in os.listdir(os.path.join(binaryninja.user_plugin_path(), 'temp')):
             delete_file_from_temp(file)
 
-    # Do the thing
+    # Verify we have correct file
     if (is_system_supported(file) and latest_version != None):
         plugin_data = (read_data_file() if data_file_exists() else None) if data_folder_exists() else None
-        # Check if we have both version and hash of the plugin
-        if plugin_data == None or len(plugin_data) != 2 or plugin_data[0] == None or plugin_data[1] == None:
+        # Check if we have all required data (version, hash, file name)
+        if plugin_data == None or len(plugin_data) != 3 or plugin_data[0] == None or plugin_data[1] == None or plugin_data[2] == None:
             delete_data_file() if data_file_exists() else None
             plugin_data = None
 
         data_version = plugin_data[0] if plugin_data != None else None
         data_hash = plugin_data[1] if plugin_data != None else None
+        data_file_name = plugin_data[2] if plugin_data != None else None
+
+        # Check if we there is a binary for different Binary Ninja version
+        if (data_file_name != None and data_file_name != file):
+            # Delete old file
+            delete_file(os.path.join(binaryninja.user_plugin_path(), data_file_name))
+            # Delete data file
+            delete_data_file()
+            # Reset data
+            plugin_data = None
+            data_version = None
+            data_hash = None
+            data_file_name = None
+
         if not is_plugin_installed(file):
             # Plugin not installed, just download it
             if download_file(file_url, file):
                 # Register plugin in data directory
-                write_data_file(latest_version, calculate_hash(os.path.join(binaryninja.user_plugin_path(), file)))
+                write_data_file(latest_version, calculate_hash(os.path.join(binaryninja.user_plugin_path(), file)), file)
                 alert_user('Plugin downloaded successfully, please restart Binary Ninja to load it')
             else:
                 alert_user('Failed to download plugin')
@@ -191,7 +238,7 @@ def check_for_updates(repo_owner, repo_name, file_url, win_file, linux_file, dar
                 download_file_to_temp(file_url, file)
                 if (calculate_hash(os.path.join(binaryninja.user_plugin_path(), file)) == calculate_hash(os.path.join(binaryninja.user_plugin_path(), 'temp', file))):
                     # We have the latest version, register it in data directory
-                    write_data_file(latest_version, calculate_hash(os.path.join(binaryninja.user_plugin_path(), file)))
+                    write_data_file(latest_version, calculate_hash(os.path.join(binaryninja.user_plugin_path(), file)), file)
                     delete_file_from_temp(file)
                 else:
                     # We don't have the latest version, alert user
@@ -209,7 +256,7 @@ def check_for_updates(repo_owner, repo_name, file_url, win_file, linux_file, dar
                     download_file_to_temp(file_url, file)
                     if (calculate_hash(os.path.join(binaryninja.user_plugin_path(), file)) == calculate_hash(os.path.join(binaryninja.user_plugin_path(), 'temp', file))):
                         # We have the latest version, register it in data directory so user is not prompted to update as he probably already did
-                        write_data_file(latest_version, calculate_hash(os.path.join(binaryninja.user_plugin_path(), file)))
+                        write_data_file(latest_version, calculate_hash(os.path.join(binaryninja.user_plugin_path(), file)), file)
                         delete_file_from_temp(file)
                     else:
                         # We don't have the latest version, alert user
@@ -224,7 +271,7 @@ def check_for_updates(repo_owner, repo_name, file_url, win_file, linux_file, dar
                     download_file_to_temp(file_url, file)
                     if (calculate_hash(os.path.join(binaryninja.user_plugin_path(), file)) == calculate_hash(os.path.join(binaryninja.user_plugin_path(), 'temp', file))):
                         # Yep, hash of the plugin in the github release corresponds to the hash of currently installed plugin so we have the latest one
-                        write_data_file(latest_version, calculate_hash(os.path.join(binaryninja.user_plugin_path(), file)))
+                        write_data_file(latest_version, calculate_hash(os.path.join(binaryninja.user_plugin_path(), file)), file)
                         delete_file_from_temp(file)
                     else:
                         # Not the latest one (according to the hash in the github release), but user might be intending to test different version of the plugin, add ignore option
@@ -237,7 +284,7 @@ class Updater(binaryninja.BackgroundTaskThread):
         binaryninja.BackgroundTaskThread.__init__(self, 'Native plugin loader - checking for updates on: {}'.format(plugin_name), True)
 
     def run(self):
-        check_for_updates(repo_owner, repo_name, file_url, win_file, linux_file, darwin_file)
+        check_for_updates(repo_owner, repo_name, file_url, win_files, linux_files, darwin_files)
 
 obj = Updater()
 obj.start()
