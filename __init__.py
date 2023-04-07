@@ -115,7 +115,11 @@ def write_data_file(version, hash, file_name):
 def delete_data_file():
     path = os.path.join(binaryninja.user_plugin_path(), 'native_plugins_data', plugin_name + '.data')
     if os.path.isfile(path):
-        os.remove(path)
+        try:
+            os.remove(path)
+        except Exception as error:
+            return path
+    return True
 
 # Function that calculates hash of file
 def calculate_hash(file_path):
@@ -149,13 +153,21 @@ def download_file_to_temp(file_url, file_name):
 # Function that deletes file
 def delete_file(file_path):
     if os.path.isfile(file_path):
-        os.remove(file_path)
+        try:
+            os.remove(file_path)
+        except Exception as error:
+            return file_path
+    return True
 
 # Function that deletes file from temp directory
 def delete_file_from_temp(file_name):
     path = os.path.join(binaryninja.user_plugin_path(), 'temp', file_name)
     if os.path.isfile(path):
-        os.remove(path)
+        try:
+            os.remove(path)
+        except Exception as error:
+            return path
+    return True
 
 # Function that determines whether plugin is installed (for current Binary Ninja version)
 def is_plugin_installed(file_name):
@@ -214,14 +226,20 @@ def check_for_updates(repo_owner, repo_name, file_url, win_files, linux_files, d
     else:
         # Delete all files in temp folder
         for file in os.listdir(os.path.join(binaryninja.user_plugin_path(), 'temp')):
-            delete_file_from_temp(file)
+            ret = delete_file_from_temp(file)
+            if ret != True:
+                alert_user('Failed to delete {}, please close Binary Ninja and delete the file/folder manually'.format(ret))
+                return
 
     # Verify we have correct file
     if (is_system_supported(file) and latest_version != None):
         plugin_data = (read_data_file() if data_file_exists() else None) if data_folder_exists() else None
         # Check if we have all required data (version, hash, file name)
         if plugin_data == None or len(plugin_data) != 3 or plugin_data[0] == None or plugin_data[1] == None or plugin_data[2] == None:
-            delete_data_file() if data_file_exists() else None
+            ret = delete_data_file() if data_file_exists() else True
+            if ret != True:
+                alert_user('Failed to delete {}, please close Binary Ninja and delete the file/folder manually'.format(ret))
+                return
             plugin_data = None
 
         data_version = plugin_data[0] if plugin_data != None else None
@@ -231,9 +249,15 @@ def check_for_updates(repo_owner, repo_name, file_url, win_files, linux_files, d
         # Check if we there is a binary for different Binary Ninja version
         if (data_file_name != None and data_file_name != file):
             # Delete old file
-            delete_file(os.path.join(binaryninja.user_plugin_path(), data_file_name))
+            ret = delete_file(os.path.join(binaryninja.user_plugin_path(), data_file_name))
+            if ret != True:
+                alert_user('Failed to delete {}, please close Binary Ninja and delete the file/folder manually'.format(ret))
+                return
             # Delete data file
-            delete_data_file()
+            ret = delete_data_file()
+            if ret != True:
+                alert_user('Failed to delete {}, please close Binary Ninja and delete the file/folder manually'.format(ret))
+                return
             # Reset data
             plugin_data = None
             data_version = None
@@ -256,7 +280,10 @@ def check_for_updates(repo_owner, repo_name, file_url, win_files, linux_files, d
                 if (calculate_hash(os.path.join(binaryninja.user_plugin_path(), file)) == calculate_hash(os.path.join(binaryninja.user_plugin_path(), 'temp', file))):
                     # We have the latest version, register it in data directory
                     write_data_file(latest_version, calculate_hash(os.path.join(binaryninja.user_plugin_path(), file)), file)
-                    delete_file_from_temp(file)
+                    ret = delete_file_from_temp(file)
+                    if ret != True:
+                        alert_user('Failed to delete {}, please close Binary Ninja and delete the file/folder manually'.format(ret))
+                        return
                 else:
                     # We don't have the latest version, alert user
                     alert_user('You are using outdated version of this plugin and it must be updated manually\n1. download the latest version from {}\n2. close Binary Ninja\n3. replace the outdated plugin with the newly downloaded file in {}'.format(file_url, binaryninja.user_plugin_path()))
@@ -268,7 +295,10 @@ def check_for_updates(repo_owner, repo_name, file_url, win_files, linux_files, d
                     alert_user('You are using outdated version of this plugin and it must be updated manually\n1. download the latest version from {}\n2. close Binary Ninja\n3. replace the outdated plugin with the newly downloaded file in {}'.format(file_url, binaryninja.user_plugin_path()))
                 else:
                     # Nope, version noted in data doesn't correspond to the hash of currently installed plugin (user probably replaced the plugin)
-                    delete_data_file()
+                    ret = delete_data_file()
+                    if ret != True:
+                        alert_user('Failed to delete {}, please close Binary Ninja and delete the file/folder manually'.format(ret))
+                        return
                     # Download latest version of the plugin and check if we have that version
                     download_file_to_temp(file_url, file)
                     if (calculate_hash(os.path.join(binaryninja.user_plugin_path(), file)) == calculate_hash(os.path.join(binaryninja.user_plugin_path(), 'temp', file))):
@@ -283,13 +313,19 @@ def check_for_updates(repo_owner, repo_name, file_url, win_files, linux_files, d
                 # Make sure the version in the data directory is actually the version we have installed (we compare hashes - hash now and hash when we downloaded the plugin)
                 if (data_hash != calculate_hash(os.path.join(binaryninja.user_plugin_path(), file))):
                     # Nope, hash noted in data doesn't correspond to the hash of currently installed plugin (user probably replaced the plugin with different version)
-                    delete_data_file()                
+                    ret = delete_data_file()
+                    if ret != True:
+                        alert_user('Failed to delete {}, please close Binary Ninja and delete the file/folder manually'.format(ret))
+                        return
                     # Let's check if our plugin matches the hash in the latest github release (developer could have replaced file in the github release and user updated to it)
                     download_file_to_temp(file_url, file)
                     if (calculate_hash(os.path.join(binaryninja.user_plugin_path(), file)) == calculate_hash(os.path.join(binaryninja.user_plugin_path(), 'temp', file))):
                         # Yep, hash of the plugin in the github release corresponds to the hash of currently installed plugin so we have the latest one
                         write_data_file(latest_version, calculate_hash(os.path.join(binaryninja.user_plugin_path(), file)), file)
-                        delete_file_from_temp(file)
+                        ret = delete_file_from_temp(file)
+                        if ret != True:
+                            alert_user('Failed to delete {}, please close Binary Ninja and delete the file/folder manually'.format(ret))
+                            return
                     else:
                         # Not the latest one (according to the hash in the github release), but user might be intending to test different version of the plugin, add ignore option
                         alert_user('You are using outdated version of this plugin and it must be updated manually\n1. download the latest version from {}\n2. close Binary Ninja\n3. replace the outdated plugin with the newly downloaded file in {}'.format(file_url, binaryninja.user_plugin_path()))
