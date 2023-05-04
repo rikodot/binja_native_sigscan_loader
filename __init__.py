@@ -44,12 +44,14 @@ win_files = [
     ('3.1.3469', '3.1.3469', '3469sigscan.dll'),
     ('3.2.3814', '3.2.3814', '3814sigscan.dll'),
     ('3.3.3996', '3.3.3996', '3996sigscan.dll'),
+    ('3.4.4271', '3.4.4271', '4203sigscan.dll'),
     ('DEV', 'DEV', '4203sigscan.dll')
     ]
 linux_files = [
     ('3.1.3469', '3.1.3469', '3469libsigscan.so'),
     ('3.2.3814', '3.2.3814', '3814libsigscan.so'),
     ('3.3.3996', '3.3.3996', '3996libsigscan.so'),
+    ('3.4.4271', '3.4.4271', '4203libsigscan.so'),
     ('DEV', 'DEV', '4203libsigscan.so')
     ]
 darwin_files = []
