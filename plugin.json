@@ -16,11 +16,13 @@
 	},
 	"platforms":[
 		"Windows",
-		"Linux"
+		"Linux",
+		"Darwin"
 	],
 	"installinstructions":{
 		"Windows":"",
-		"Linux":""
+		"Linux":"",
+		"Darwin":""
 	},
 	"dependencies":{
 		"pip":[
@@ -28,7 +30,7 @@
 			"bs4"
 		]
 	},
-	"version":"1.0.4",
+	"version":"1.0.6",
 	"author":"rikodot",
 	"minimumbinaryninjaversion":0
 }

@@ -41,20 +41,23 @@ file_url = 'https://github.com/{}/{}/releases/latest/download'.format(repo_owner
 #    ('DEV', 'DEV', 'sigscan_dev2.dll'), # anything in between 3.4.4169 and 3.4.4189 (inclusive) - all dev versions
 #    ]
 win_files = [
-    ('3.1.3469', '3.1.3469', '3469sigscan.dll'),
-    ('3.2.3814', '3.2.3814', '3814sigscan.dll'),
     ('3.3.3996', '3.3.3996', '3996sigscan.dll'),
-    ('3.4.4271', '3.4.4271', '4203sigscan.dll'),
-    ('DEV', 'DEV', '4203sigscan.dll')
+    ('3.4.4271', '3.4.4271', '4271sigscan.dll'),
+    ('3.5.4526', '3.5.4526', '4526sigscan.dll'),
+    ('DEV', 'DEV', 'DEVsigscan.dll')
     ]
 linux_files = [
-    ('3.1.3469', '3.1.3469', '3469libsigscan.so'),
-    ('3.2.3814', '3.2.3814', '3814libsigscan.so'),
     ('3.3.3996', '3.3.3996', '3996libsigscan.so'),
-    ('3.4.4271', '3.4.4271', '4203libsigscan.so'),
-    ('DEV', 'DEV', '4203libsigscan.so')
+    ('3.4.4271', '3.4.4271', '4271libsigscan.so'),
+    ('3.5.4526', '3.5.4526', '4526libsigscan.so'),
+    ('DEV', 'DEV', 'DEVlibsigscan.so')
     ]
-darwin_files = []
+darwin_files = [
+    ('3.3.3996', '3.3.3996', '3996libsigscan.dylib'),
+    ('3.4.4271', '3.4.4271', '4271libsigscan.dylib'),
+    ('3.5.4526', '3.5.4526', '4526libsigscan.dylib'),
+    ('DEV', 'DEV', 'DEVlibsigscan.dylib')
+    ]
 
 # Function that determines whether Binary Ninja version is supported (returns None if not, according file name if yes)
 def is_version_supported(files):
