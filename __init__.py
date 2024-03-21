@@ -50,12 +50,16 @@ linux_files = [
     ('3.3.3996', '3.3.3996', '3996libsigscan.so'),
     ('3.4.4271', '3.4.4271', '4271libsigscan.so'),
     ('3.5.4526', '3.5.4526', '4526libsigscan.so'),
+    ('4.0.4911', '4.0.4911', '4911libsigscan.so'),
+    ('4.0.4958', '4.0.4958', '4958libsigscan.so'),
     ('DEV', 'DEV', 'DEVlibsigscan.so')
     ]
 darwin_files = [
     ('3.3.3996', '3.3.3996', '3996libsigscan.dylib'),
     ('3.4.4271', '3.4.4271', '4271libsigscan.dylib'),
     ('3.5.4526', '3.5.4526', '4526libsigscan.dylib'),
+    ('4.0.4911', '4.0.4911', '4911libsigscan.dylib'),
+    ('4.0.4958', '4.0.4958', '4958libsigscan.dylib'),
     ('DEV', 'DEV', 'DEVlibsigscan.dylib')
     ]
 
