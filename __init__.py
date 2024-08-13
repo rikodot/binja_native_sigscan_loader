@@ -45,6 +45,7 @@ win_files = [
     ('3.4.4271', '3.4.4271', '4271sigscan.dll'),
     ('3.5.4526', '3.5.4526', '4526sigscan.dll'),
     ('4.0.4958', '4.0.4958', '4958sigscan.dll'),
+    ('4.1.5747', '4.1.5747', '5747sigscan.dll'),
     ('DEV', 'DEV', 'DEVsigscan.dll')
     ]
 linux_files = [
@@ -53,6 +54,7 @@ linux_files = [
     ('3.5.4526', '3.5.4526', '4526libsigscan.so'),
     ('4.0.4911', '4.0.4911', '4911libsigscan.so'),
     ('4.0.4958', '4.0.4958', '4958libsigscan.so'),
+    ('4.1.5747', '4.1.5747', '5747libsigscan.so'),
     ('DEV', 'DEV', 'DEVlibsigscan.so')
     ]
 darwin_files = [
@@ -61,6 +63,7 @@ darwin_files = [
     ('3.5.4526', '3.5.4526', '4526libsigscan.dylib'),
     ('4.0.4911', '4.0.4911', '4911libsigscan.dylib'),
     ('4.0.4958', '4.0.4958', '4958libsigscan.dylib'),
+    ('4.1.5747', '4.1.5747', '5747libsigscan.dylib'),
     ('DEV', 'DEV', 'DEVlibsigscan.dylib')
     ]
 
